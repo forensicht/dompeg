@@ -71,14 +71,14 @@ impl Component for ConvertDialogModel {
                     },
 
                     pack_end = &gtk::Button {
-                        set_label: fl!("convert"),
+                        set_label: fl!("extract"),
                         set_css_classes: &["suggested-action"],
                         connect_clicked => ConvertDialogInput::Convert,
                     },
 
                     #[wrap(Some)]
                     set_title_widget = &gtk::Label {
-                        set_label: fl!("convert-video"),
+                        set_label: fl!("extract-frames"),
                     },
                 },
 

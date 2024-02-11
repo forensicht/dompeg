@@ -196,7 +196,7 @@ impl AsyncComponent for VideoListModel {
                     #[wrap(Some)]
                     set_child = &adw::ButtonContent {
                         set_icon_name: icon_name::ENCODE,
-                        set_label: fl!("convert"),
+                        set_label: fl!("extract-frames"),
                         set_use_underline: true,
                     },
 
