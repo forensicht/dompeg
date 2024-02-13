@@ -6,7 +6,7 @@ pub mod models;
 use crate::fl;
 use crate::app::components::{
     about_dialog::AboutDialog,
-    search_bar::{
+    searchbar::{
         SearchBarModel, 
         SearchBarInput,
         SearchBarOutput,
@@ -48,9 +48,9 @@ use relm4::{
 use relm4_icons::icon_name;
 
 pub struct App {
-    search_bar: AsyncController<SearchBarModel>,
+    searchbar: AsyncController<SearchBarModel>,
     content: AsyncController<ContentModel>,
-    preferences: AsyncController<PreferencesModel>,
+    preferences: Option<AsyncController<PreferencesModel>>,
     about_dialog: Option<Controller<AboutDialog>>,
     video_count: usize,
     filter_count: usize,
@@ -59,13 +59,13 @@ pub struct App {
 
 impl App {
     pub fn new(
-        search_bar: AsyncController<SearchBarModel>,
+        searchbar: AsyncController<SearchBarModel>,
         content: AsyncController<ContentModel>,
-        preferences: AsyncController<PreferencesModel>,
+        preferences: Option<AsyncController<PreferencesModel>>,
         about_dialog: Option<Controller<AboutDialog>>,
     ) -> Self {
         Self{
-            search_bar,
+            searchbar,
             content,
             preferences,
             about_dialog,
@@ -78,7 +78,6 @@ impl App {
 
 #[derive(Debug)]
 pub enum AppInput {
-    OpenPreferences,
     StartSearch(PathBuf),
     SearchCompleted(usize),
     FilterCount(usize),
@@ -140,7 +139,7 @@ impl AsyncComponent for App {
                     },
 
                     #[wrap(Some)]
-                    set_title_widget = model.search_bar.widget(),
+                    set_title_widget = model.searchbar.widget(),
                 },
 
                 #[name(overlay)]
@@ -182,7 +181,7 @@ impl AsyncComponent for App {
         }
     }
 
-    fn init_loading_widgets(root: &mut Self::Root) -> Option<LoadingWidgets> {
+    fn init_loading_widgets(root: Self::Root) -> Option<LoadingWidgets> {
         view! {
             #[local_ref]
             root {
@@ -256,18 +255,20 @@ impl AsyncComponent for App {
                 ContentOutput::Notify(msg, timeout) => AppInput::Notify(msg, timeout),
             });
 
-        let preferences_controller = PreferencesModel::builder()
-            .launch(())
-            .detach();
-
         let mut model = App::new(
             search_bar_controller,
             content_controller,
-            preferences_controller,
+            None,
             None,
         );
 
         let widgets = view_output!();
+
+        let preferences_controller = PreferencesModel::builder()
+        .launch(widgets.main_window.upcast_ref::<gtk::Window>().clone())
+        .detach();
+
+        model.preferences = Some(preferences_controller);
 
         let about_dialog = ComponentBuilder::default()
             .launch(widgets.main_window.upcast_ref::<gtk::Window>().clone())
@@ -276,9 +277,9 @@ impl AsyncComponent for App {
         model.about_dialog = Some(about_dialog);
 
         let preferences_action = {
-            let sender = sender.clone();
+            let window = model.preferences.as_ref().unwrap().widget().clone();
             RelmAction::<PreferencesAction>::new_stateless(move |_| {
-                sender.input_sender().send(AppInput::OpenPreferences).unwrap_or_default();
+                window.present();
             })
         };
 
@@ -316,16 +317,13 @@ impl AsyncComponent for App {
         _root: &Self::Root,
     ) {
         match message {
-            AppInput::OpenPreferences => {
-                self.preferences.widget().present();
-            }
             AppInput::StartSearch(path) => {
                 self.content.emit(ContentInput::StartSearch(path));
             }
             AppInput::SearchCompleted(count) => {
                 self.video_count = count;
                 self.filter_count = count;
-                self.search_bar.emit(SearchBarInput::SearchCompleted);
+                self.searchbar.emit(SearchBarInput::SearchCompleted);
             }
             AppInput::FilterCount(count) => {
                 self.filter_count = count;

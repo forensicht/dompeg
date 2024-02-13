@@ -57,11 +57,11 @@ version = "0.14.1"
 features = ["fluent-system", "desktop-requester"]
 
 [dependencies.relm4]
-version = "0.7.0-beta.2"
+version = "0.7.0-rc.1"
 features = ["macros", "libadwaita", "gnome_44"]
 
 [dependencies.relm4-components]
-version = "0.7.0-beta.2"
+version = "0.7.0-rc.1"
 
 [dependencies.relm4-icons]
 version = "0.7.0-alpha.2"

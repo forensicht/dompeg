@@ -9,13 +9,13 @@ use crate::app::{
         VideoInput,
         VideoOutput,
     },
-    components::convert_dialog::{
-        ConvertDialogModel, 
-        ConvertDialogOutput,
+    components::extract_dialog::{
+        ExtractDialogModel, 
+        ExtractDialogOutput,
     },
 };
 use crate::fl;
-use super::tool_bar::{
+use super::toolbar::{
     ToolBarModel, 
     ToolBarInput,
     ToolBarOutput,
@@ -86,21 +86,21 @@ impl VideoListFilter {
 }
 
 pub struct VideoListModel {
-    tool_bar: AsyncController<ToolBarModel>,
+    toolbar: AsyncController<ToolBarModel>,
     video_list_factory: AsyncFactoryVecDeque<VideoModel>,
-    convert_dialog: Controller<ConvertDialogModel>,
+    convert_dialog: Controller<ExtractDialogModel>,
     video_list_filter: VideoListFilter,
     thumbnail_size: i32,
 }
 
 impl VideoListModel {
     pub fn new(
-        tool_bar: AsyncController<ToolBarModel>,
+        toolbar: AsyncController<ToolBarModel>,
         video_list_factory: AsyncFactoryVecDeque<VideoModel>,
-        convert_dialog: Controller<ConvertDialogModel>,
+        convert_dialog: Controller<ExtractDialogModel>,
     ) -> Self {
         Self { 
-            tool_bar, 
+            toolbar, 
             video_list_factory, 
             convert_dialog,
             video_list_filter: VideoListFilter::default(),
@@ -115,8 +115,8 @@ pub enum VideoListInput {
     ZoomOut,
     StartSearch(PathBuf),
     PlayVideo(usize),
-    OpenConvertDialog,
-    OpenConvertResponse(models::LayoutType, PathBuf),
+    OpenExtractDialog,
+    OpenExtractResponse(models::LayoutType, PathBuf),
     SelectAllVideos(bool),
     SelectedVideo(bool),
 
@@ -133,7 +133,7 @@ pub enum VideoListInput {
 pub enum VideoListOutput {
     SearchCompleted(usize),
     FilterResult(usize),
-    ConvertVideos(Vec<String>, models::LayoutType, PathBuf),
+    ExtractVideos(Vec<String>, models::LayoutType, PathBuf),
     Notify(String, u32),
 }
 
@@ -157,7 +157,7 @@ impl AsyncComponent for VideoListModel {
             set_margin_start: 6,
             set_margin_top: 4,
 
-            model.tool_bar.widget(),
+            model.toolbar.widget(),
 
             gtk::Overlay {
                 set_hexpand: true,
@@ -200,7 +200,7 @@ impl AsyncComponent for VideoListModel {
                         set_use_underline: true,
                     },
 
-                    connect_clicked => VideoListInput::OpenConvertDialog,
+                    connect_clicked => VideoListInput::OpenExtractDialog,
                 },
             },
         }
@@ -231,12 +231,12 @@ impl AsyncComponent for VideoListModel {
                 VideoOutput::Selected(is_selected) => VideoListInput::SelectedVideo(is_selected),
             });
 
-        let convert_dialog_controller = ConvertDialogModel::builder()
+        let convert_dialog_controller = ExtractDialogModel::builder()
             .transient_for(&root)
             .launch(())
             .forward(sender.input_sender(), |output| match output {
-                ConvertDialogOutput::Response(layout_type, dst_path) => {
-                    VideoListInput::OpenConvertResponse(layout_type, dst_path)
+                ExtractDialogOutput::Response(layout_type, dst_path) => {
+                    VideoListInput::OpenExtractResponse(layout_type, dst_path)
                 }
             });
 
@@ -270,18 +270,18 @@ impl AsyncComponent for VideoListModel {
             VideoListInput::PlayVideo(index) => {
                 self.on_play_video(index, &sender).await;
             }
-            VideoListInput::OpenConvertDialog => {
+            VideoListInput::OpenExtractDialog => {
                 let convert_dialog = self.convert_dialog.widget();
                 convert_dialog.present();
             }
-            VideoListInput::OpenConvertResponse(layout_type, dst_path) => {
+            VideoListInput::OpenExtractResponse(layout_type, dst_path) => {
                 self.on_open_convert_response(layout_type, dst_path, &sender).await;
             }
             VideoListInput::SelectAllVideos(is_selected) => {
                 self.on_select_all_videos(is_selected).await;
             }
             VideoListInput::SelectedVideo(is_selected) => {
-                self.tool_bar.emit(ToolBarInput::SelectedVideo(is_selected));
+                self.toolbar.emit(ToolBarInput::SelectedVideo(is_selected));
             }
             VideoListInput::SearchEntry(query) => {
                 self.video_list_filter.set_search_entry(&query);
@@ -396,7 +396,7 @@ impl VideoListModel {
 
         if videos_list.len() > 0 {
             sender.output(
-                VideoListOutput::ConvertVideos(videos_list, layout_type, dst_path)
+                VideoListOutput::ExtractVideos(videos_list, layout_type, dst_path)
             ).unwrap_or_default();
         } else {
             sender.output(

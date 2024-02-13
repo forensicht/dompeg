@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
 use crate::fl;
 use crate::app::{
     models,
     config::settings,
 };
 
+use std::str::FromStr;
 use relm4::{
     gtk,
     adw,
@@ -30,7 +29,7 @@ pub enum PreferencesInput {
 
 #[relm4::component(pub async)]
 impl AsyncComponent for PreferencesModel {
-    type Init = ();
+    type Init = gtk::Window;
     type Input = PreferencesInput;
     type Output = ();
     type CommandOutput = ();
@@ -41,6 +40,7 @@ impl AsyncComponent for PreferencesModel {
             set_hide_on_close: true,
             set_default_size: (400, 600),
             set_resizable: false,
+            set_transient_for: Some(&main_window),
 
             #[wrap(Some)]
             #[name = "overlay"]
@@ -195,7 +195,7 @@ impl AsyncComponent for PreferencesModel {
     }
 
     async fn init(
-        _init: Self::Init,
+        main_window: Self::Init,
         root: Self::Root,
         sender: AsyncComponentSender<Self>,
     ) -> AsyncComponentParts<Self> {

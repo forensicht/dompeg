@@ -12,7 +12,12 @@ use relm4::{
         Controller,
     },
 };
-use relm4_components::open_dialog::*;
+use relm4_components::open_dialog::{
+    OpenDialog,
+    OpenDialogSettings,
+    OpenDialogResponse,
+    OpenDialogMsg,
+};
 use relm4_icons::icon_name;
 
 pub struct SearchBarModel {
@@ -72,6 +77,7 @@ impl AsyncComponent for SearchBarModel {
                 set_icon_name: icon_name::LOUPE_LARGE,
                 set_tooltip_text: Some(fl!("search")),
                 connect_clicked => SearchBarInput::StartSearch,
+                set_css_classes: &["suggested-action"],
             },
         }
     }
