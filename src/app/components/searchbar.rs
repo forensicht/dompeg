@@ -12,7 +12,12 @@ use relm4::{
         Controller,
     },
 };
-use relm4_components::open_dialog::*;
+use relm4_components::open_dialog::{
+    OpenDialog,
+    OpenDialogSettings,
+    OpenDialogResponse,
+    OpenDialogMsg,
+};
 use relm4_icons::icon_name;
 
 pub struct SearchBarModel {

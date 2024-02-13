@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
 use crate::fl;
 use crate::app::{
     models,
     config::settings,
 };
 
+use std::str::FromStr;
 use relm4::{
     gtk,
     adw,

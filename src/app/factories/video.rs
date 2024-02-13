@@ -100,7 +100,7 @@ impl AsyncFactoryComponent for VideoModel {
         }
     }
 
-    fn init_loading_widgets(root: &mut Self::Root) -> Option<LoadingWidgets> {
+    fn init_loading_widgets(root: Self::Root) -> Option<LoadingWidgets> {
         view! {
             #[local_ref]
             root {

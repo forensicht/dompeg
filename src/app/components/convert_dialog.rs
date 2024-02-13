@@ -132,7 +132,7 @@ impl Component for ConvertDialogModel {
 
     fn init(
         _init: Self::Init,
-        root: &Self::Root,
+        root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
         let mut layout_list_factory = FactoryVecDeque::builder()
