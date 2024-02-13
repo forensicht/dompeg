@@ -1,11 +1,10 @@
+use crate::fl;
 use crate::app::{
     factories::layout::LayoutModel,
     models,
 };
-use crate::fl;
 
 use std::path::PathBuf;
-
 use relm4::{
     prelude::*,
     gtk::prelude::*,
@@ -19,7 +18,7 @@ use relm4::{
 use relm4_components::open_dialog::*;
 use relm4_icons::icon_name;
 
-pub struct ConvertDialogModel {
+pub struct ExtractDialogModel {
     layout_list_factory: FactoryVecDeque<LayoutModel>,
     open_dialog: Controller<OpenDialog>,
     layout_type: Option<models::LayoutType>,
@@ -27,7 +26,7 @@ pub struct ConvertDialogModel {
 }
 
 #[derive(Debug)]
-pub enum ConvertDialogInput {
+pub enum ExtractDialogInput {
     SelectLayout(usize),
     OpenFileRequest,
     OpenFileResponse(PathBuf),
@@ -37,15 +36,15 @@ pub enum ConvertDialogInput {
 }
 
 #[derive(Debug)]
-pub enum ConvertDialogOutput {
+pub enum ExtractDialogOutput {
     Response(models::LayoutType, PathBuf),
 }
 
 #[relm4::component(pub)]
-impl Component for ConvertDialogModel {
+impl Component for ExtractDialogModel {
     type Init = ();
-    type Input = ConvertDialogInput;
-    type Output = ConvertDialogOutput;
+    type Input = ExtractDialogInput;
+    type Output = ExtractDialogOutput;
     type CommandOutput = ();
 
     view! {
@@ -67,13 +66,13 @@ impl Component for ConvertDialogModel {
 
                     pack_start = &gtk::Button {
                         set_label: fl!("cancel"),
-                        connect_clicked => ConvertDialogInput::Cancel,
+                        connect_clicked => ExtractDialogInput::Cancel,
                     },
 
                     pack_end = &gtk::Button {
                         set_label: fl!("extract"),
                         set_css_classes: &["suggested-action"],
-                        connect_clicked => ConvertDialogInput::Convert,
+                        connect_clicked => ExtractDialogInput::Convert,
                     },
 
                     #[wrap(Some)]
@@ -104,7 +103,7 @@ impl Component for ConvertDialogModel {
                                 set_activate_on_single_click: true,
                                 connect_child_activated[sender] => move |_, child| {
                                     let index = child.index() as usize;
-                                    sender.input(ConvertDialogInput::SelectLayout(index));
+                                    sender.input(ExtractDialogInput::SelectLayout(index));
                                 },
                             },
                         }
@@ -121,7 +120,7 @@ impl Component for ConvertDialogModel {
                         set_secondary_icon_tooltip_text: Some(fl!("select-directory")),
                         connect_icon_release[sender] => move |_, icon_position| {
                             if icon_position == gtk::EntryIconPosition::Secondary {
-                                sender.input(ConvertDialogInput::OpenFileRequest);
+                                sender.input(ExtractDialogInput::OpenFileRequest);
                             }
                         },
                     },
@@ -157,11 +156,11 @@ impl Component for ConvertDialogModel {
             .transient_for_native(&root)
             .launch(open_dialog_settings)
             .forward(sender.input_sender(), |response| match response {
-                OpenDialogResponse::Accept(path) => ConvertDialogInput::OpenFileResponse(path),
-                OpenDialogResponse::Cancel => ConvertDialogInput::Ignore,
+                OpenDialogResponse::Accept(path) => ExtractDialogInput::OpenFileResponse(path),
+                OpenDialogResponse::Cancel => ExtractDialogInput::Ignore,
             });
 
-        let model = ConvertDialogModel { 
+        let model = ExtractDialogModel { 
             layout_list_factory,
             open_dialog,
             layout_type: None,
@@ -181,25 +180,25 @@ impl Component for ConvertDialogModel {
         root: &Self::Root,
     ) {
         match message {
-            ConvertDialogInput::SelectLayout(index) => {
+            ExtractDialogInput::SelectLayout(index) => {
                 let layouts_guard = self.layout_list_factory.guard();
                 if let Some(layout_model) = layouts_guard.get(index) {
                     self.layout_type = Some(layout_model.layout.layout_type);
                 }
             }
-            ConvertDialogInput::OpenFileRequest => self.open_dialog.emit(OpenDialogMsg::Open),
-            ConvertDialogInput::OpenFileResponse(path) => self.file_path = path,
-            ConvertDialogInput::Convert => {
+            ExtractDialogInput::OpenFileRequest => self.open_dialog.emit(OpenDialogMsg::Open),
+            ExtractDialogInput::OpenFileResponse(path) => self.file_path = path,
+            ExtractDialogInput::Convert => {
                 if !self.file_path.exists() { return }
                 if let Some(layout_type) = self.layout_type {
                     let file_path = self.file_path.clone();
-                    sender.output(ConvertDialogOutput::Response(layout_type, file_path))
+                    sender.output(ExtractDialogOutput::Response(layout_type, file_path))
                         .unwrap_or_default();
                     root.close();
                 }
             }
-            ConvertDialogInput::Cancel => root.close(),
-            ConvertDialogInput::Ignore => {}
+            ExtractDialogInput::Cancel => root.close(),
+            ExtractDialogInput::Ignore => {}
         }
     }
 }

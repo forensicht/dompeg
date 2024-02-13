@@ -106,7 +106,7 @@ impl AsyncComponent for ContentModel {
             .forward(sender.input_sender(), |output| match output {
                 VideoListOutput::SearchCompleted(found) => ContentInput::SearchCompleted(found),
                 VideoListOutput::FilterResult(len) => ContentInput::FilterCount(len),
-                VideoListOutput::ConvertVideos(video_list, layout_type, dst_path) => {
+                VideoListOutput::ExtractVideos(video_list, layout_type, dst_path) => {
                     ContentInput::ConvertVideos(video_list, layout_type, dst_path)
                 }
                 VideoListOutput::Notify(msg, timeout) => ContentInput::Notify(msg, timeout),

@@ -54,7 +54,7 @@ impl AsyncComponent for ToolBarModel {
     type CommandOutput = ();
 
     view! {
-        #[name = "tool_bar"]
+        #[name = "toolbar"]
         gtk::Box {
             set_orientation: gtk::Orientation::Horizontal,
             set_hexpand: true,
