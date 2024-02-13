@@ -50,7 +50,7 @@ use relm4_icons::icon_name;
 pub struct App {
     searchbar: AsyncController<SearchBarModel>,
     content: AsyncController<ContentModel>,
-    preferences: AsyncController<PreferencesModel>,
+    preferences: Option<AsyncController<PreferencesModel>>,
     about_dialog: Option<Controller<AboutDialog>>,
     video_count: usize,
     filter_count: usize,
@@ -61,7 +61,7 @@ impl App {
     pub fn new(
         searchbar: AsyncController<SearchBarModel>,
         content: AsyncController<ContentModel>,
-        preferences: AsyncController<PreferencesModel>,
+        preferences: Option<AsyncController<PreferencesModel>>,
         about_dialog: Option<Controller<AboutDialog>>,
     ) -> Self {
         Self{
@@ -78,7 +78,6 @@ impl App {
 
 #[derive(Debug)]
 pub enum AppInput {
-    OpenPreferences,
     StartSearch(PathBuf),
     SearchCompleted(usize),
     FilterCount(usize),
@@ -256,18 +255,20 @@ impl AsyncComponent for App {
                 ContentOutput::Notify(msg, timeout) => AppInput::Notify(msg, timeout),
             });
 
-        let preferences_controller = PreferencesModel::builder()
-            .launch(())
-            .detach();
-
         let mut model = App::new(
             search_bar_controller,
             content_controller,
-            preferences_controller,
+            None,
             None,
         );
 
         let widgets = view_output!();
+
+        let preferences_controller = PreferencesModel::builder()
+        .launch(widgets.main_window.upcast_ref::<gtk::Window>().clone())
+        .detach();
+
+        model.preferences = Some(preferences_controller);
 
         let about_dialog = ComponentBuilder::default()
             .launch(widgets.main_window.upcast_ref::<gtk::Window>().clone())
@@ -276,9 +277,9 @@ impl AsyncComponent for App {
         model.about_dialog = Some(about_dialog);
 
         let preferences_action = {
-            let sender = sender.clone();
+            let window = model.preferences.as_ref().unwrap().widget().clone();
             RelmAction::<PreferencesAction>::new_stateless(move |_| {
-                sender.input_sender().send(AppInput::OpenPreferences).unwrap_or_default();
+                window.present();
             })
         };
 
@@ -316,9 +317,6 @@ impl AsyncComponent for App {
         _root: &Self::Root,
     ) {
         match message {
-            AppInput::OpenPreferences => {
-                self.preferences.widget().present();
-            }
             AppInput::StartSearch(path) => {
                 self.content.emit(ContentInput::StartSearch(path));
             }
