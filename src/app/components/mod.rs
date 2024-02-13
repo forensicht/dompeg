@@ -1,5 +1,5 @@
 pub mod about_dialog;
-pub mod search_bar;
+pub mod searchbar;
 pub mod tool_bar;
 pub mod content;
 pub mod video_list;

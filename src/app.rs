@@ -6,7 +6,7 @@ pub mod models;
 use crate::fl;
 use crate::app::components::{
     about_dialog::AboutDialog,
-    search_bar::{
+    searchbar::{
         SearchBarModel, 
         SearchBarInput,
         SearchBarOutput,
@@ -48,7 +48,7 @@ use relm4::{
 use relm4_icons::icon_name;
 
 pub struct App {
-    search_bar: AsyncController<SearchBarModel>,
+    searchbar: AsyncController<SearchBarModel>,
     content: AsyncController<ContentModel>,
     preferences: AsyncController<PreferencesModel>,
     about_dialog: Option<Controller<AboutDialog>>,
@@ -59,13 +59,13 @@ pub struct App {
 
 impl App {
     pub fn new(
-        search_bar: AsyncController<SearchBarModel>,
+        searchbar: AsyncController<SearchBarModel>,
         content: AsyncController<ContentModel>,
         preferences: AsyncController<PreferencesModel>,
         about_dialog: Option<Controller<AboutDialog>>,
     ) -> Self {
         Self{
-            search_bar,
+            searchbar,
             content,
             preferences,
             about_dialog,
@@ -140,7 +140,7 @@ impl AsyncComponent for App {
                     },
 
                     #[wrap(Some)]
-                    set_title_widget = model.search_bar.widget(),
+                    set_title_widget = model.searchbar.widget(),
                 },
 
                 #[name(overlay)]
@@ -325,7 +325,7 @@ impl AsyncComponent for App {
             AppInput::SearchCompleted(count) => {
                 self.video_count = count;
                 self.filter_count = count;
-                self.search_bar.emit(SearchBarInput::SearchCompleted);
+                self.searchbar.emit(SearchBarInput::SearchCompleted);
             }
             AppInput::FilterCount(count) => {
                 self.filter_count = count;
