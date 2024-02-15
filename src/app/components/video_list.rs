@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use anyhow::Result;
 
-use crate::core::service;
+use crate::fl;
+use core_dompeg::services::video::VideoService;
 use crate::app::{
     models,
     factories::video::{
@@ -14,7 +15,6 @@ use crate::app::{
         ExtractDialogOutput,
     },
 };
-use crate::fl;
 use super::toolbar::{
     ToolBarModel, 
     ToolBarInput,
@@ -22,6 +22,7 @@ use super::toolbar::{
 };
 
 use relm4::{
+    tokio,
     prelude::*,
     gtk::prelude::*,
     factory::AsyncFactoryVecDeque,
@@ -240,7 +241,7 @@ impl AsyncComponent for VideoListModel {
                 }
             });
 
-        let model = VideoListModel::new( 
+        let model = VideoListModel::new(
             tool_bar_controller,
             video_list_factory, 
             convert_dialog_controller,
@@ -350,18 +351,24 @@ impl VideoListModel {
         path: PathBuf,
         sender: &AsyncComponentSender<VideoListModel>,
     ) {
-        sender.oneshot_command(async move {
-            match service::video::search_videos(path).await {
-                Ok(videos) => {
-                    let videos = videos
-                        .iter()
-                        .map(|video| models::Video::from(video))
-                        .collect();
-                    VideoListCommandOutput::SearchCompleted(Ok(videos))
-                }
-                Err(err) => VideoListCommandOutput::SearchCompleted(Err(err))
-            }
-        });
+        // sender.oneshot_command(async move {
+        //     tokio::task::spawn_blocking(move || {
+                
+        //     }).await;
+        // });
+
+        // sender.oneshot_command(async move {
+        //     match service::video::search_videos(path).await {
+        //         Ok(videos) => {
+        //             let videos = videos
+        //                 .iter()
+        //                 .map(|video| models::Video::from(video))
+        //                 .collect();
+        //             VideoListCommandOutput::SearchCompleted(Ok(videos))
+        //         }
+        //         Err(err) => VideoListCommandOutput::SearchCompleted(Err(err))
+        //     }
+        // });
     }
 
     async fn on_play_video(

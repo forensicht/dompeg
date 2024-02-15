@@ -1,7 +1,6 @@
 #![windows_subsystem = "windows"]
 
 mod app;
-mod core;
 
 use anyhow::Result;
 use app::config::{info::APP_ID, setup};

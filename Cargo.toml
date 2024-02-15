@@ -9,7 +9,8 @@ homepage = "https://github.com/forensicht/dompeg"
 repository = "https://github.com/forensicht/dompeg/"
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["core"]
 
 [profile.release]
 strip = true
@@ -24,25 +25,13 @@ strum = "0.26.1"
 strum_macros = "0.26.1"
 tracing = "0.1.39"
 tracing-subscriber = "0.3.17"
-image = "0.24.7"
-imageproc = "0.23.0"
 anyhow = "1.0.75"
 num_cpus = "1.16.0"
 open = "5.0.1"
-ffmpeg-next = "6.1.0"
 toml = "0.8.8"
-rusttype = "0.9.3"
 
-[dependencies.tokio]
-version = "1.28"
-features = [
-    "rt",
-    "rt-multi-thread",
-    "fs",
-    "io-util",
-    "macros",
-    "time",
-]
+[dependencies.core_dompeg]
+path = "core"
 
 [dependencies.serde]
 version = "1.0"
@@ -84,6 +73,10 @@ features = [
     "minus-large",
     "file-manager"
 ]
+
+[dependencies.tokio]
+version = "1.36"
+features = [ "time" ]
 
 [build-dependencies]
 glib-build-tools = "0.19.0"
