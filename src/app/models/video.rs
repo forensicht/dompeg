@@ -1,4 +1,4 @@
-use crate::core::search;
+use core_dompeg as core;
 
 pub const ZOOM_SIZE: i32 = 32;
 pub const THUMBNAIL_SIZE: i32 = 160;
@@ -12,8 +12,8 @@ pub struct Video {
     pub thumbnail_size: i32,
 }
 
-impl From<&search::Video> for Video {
-    fn from(value: &search::Video) -> Self {
+impl From<&core::video::Video> for Video {
+    fn from(value: &core::video::Video) -> Self {
         Self { 
             name: value.name.to_owned(), 
             path: value.path.to_owned(), 

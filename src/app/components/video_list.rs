@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use anyhow::Result;
 
-use crate::core::service;
+use crate::fl;
+use core_dompeg as core;
 use crate::app::{
     models,
     factories::video::{
@@ -14,7 +15,6 @@ use crate::app::{
         ExtractDialogOutput,
     },
 };
-use crate::fl;
 use super::toolbar::{
     ToolBarModel, 
     ToolBarInput,
@@ -240,7 +240,7 @@ impl AsyncComponent for VideoListModel {
                 }
             });
 
-        let model = VideoListModel::new( 
+        let model = VideoListModel::new(
             tool_bar_controller,
             video_list_factory, 
             convert_dialog_controller,
@@ -351,7 +351,7 @@ impl VideoListModel {
         sender: &AsyncComponentSender<VideoListModel>,
     ) {
         sender.oneshot_command(async move {
-            match service::video::search_videos(path).await {
+            match core::video::search_videos(path).await {
                 Ok(videos) => {
                     let videos = videos
                         .iter()

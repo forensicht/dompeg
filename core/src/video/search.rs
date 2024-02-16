@@ -13,10 +13,7 @@ pub struct Video {
     pub size: usize,
 }
 
-pub async fn search_videos<P>(path: P) -> Result<Vec<Video>>
-where
-    P: AsRef<Path>,
-{
+pub async fn search_videos<P: AsRef<Path>>(path: P) -> Result<Vec<Video>> {
     let mut videos = Vec::new();
     let mut dir = tokio::fs::read_dir(path).await?;
 

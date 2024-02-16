@@ -1,6 +1,6 @@
-use crate::app::models;
-use crate::core::service;
 use crate::fl;
+use crate::app::models;
+use core_dompeg as core;
 
 use relm4::{
     prelude::*,
@@ -129,16 +129,16 @@ impl AsyncFactoryComponent for VideoModel {
     ) -> Self {        
         let filename = video.path.as_str();
 
-        let pixbuf = match service::video::thumbnail(filename).await {
+        let pixbuf = match core::video::thumbnail(filename).await {
             Ok(thumb) => {
-                if let Some(data) = thumb.data() {
+                if let Some(data) = thumb.data.as_ref() {
                     let bytes = glib::Bytes::from(data);
                     let rowstride = Pixbuf::calculate_rowstride(
                         Colorspace::Rgb, 
                         true, 
                         8, 
-                        thumb.width() as i32, 
-                        thumb.height() as i32,
+                        thumb.width as i32, 
+                        thumb.height as i32,
                     );
 
                     let pixbuf = Pixbuf::from_bytes(
@@ -146,8 +146,8 @@ impl AsyncFactoryComponent for VideoModel {
                         Colorspace::Rgb, 
                         true, 
                         8, 
-                        thumb.width() as i32, 
-                        thumb.height() as i32, 
+                        thumb.width as i32, 
+                        thumb.height as i32, 
                         rowstride,
                     );
 
@@ -161,7 +161,7 @@ impl AsyncFactoryComponent for VideoModel {
                 None
             }
         };
-        
+
         Self { 
             video,
             index: index.clone(),
