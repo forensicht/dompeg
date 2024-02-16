@@ -21,8 +21,6 @@ use imageproc::drawing::{
 use rust_embed::RustEmbed;
 use anyhow::{self, Context, Result};
 
-use super::service::VideoService;
-
 const FRAME_DIMENSION: u32 = 250;
 
 #[derive(RustEmbed)]
@@ -50,8 +48,10 @@ pub struct VideoThumb {
     pub data: Option<Vec<u8>>,
 }
 
-impl VideoService {
-    pub async fn thumbnail<P: AsRef<Path>>(video_path: P) -> Result<VideoThumb> {
+pub async fn thumbnail<P: AsRef<Path>>(video_path: P) -> Result<VideoThumb> {
+    let video_path = video_path.as_ref().to_owned();
+
+    tokio::task::spawn_blocking(move || {
         ffmpeg::init()?;
         let mut input_format_context = ffmpeg::format::input(&video_path)?;
 
@@ -113,21 +113,25 @@ impl VideoService {
         };
 
         Ok(video_thumb)
-    }
+    }).await?
+}
 
-    pub async fn dump_frames_to_image<P: AsRef<Path>>(
-        video_path: P, 
-        image_path: P,
-        cols: usize,
-        rows: usize,
-    ) -> Result<()> {
-        let nframes = rows * cols;
-        let dump = Self::dump_frame(video_path, nframes).await?;
-        Self::concat_frames(dump, image_path, cols, rows)?;
-        Ok(())
-    }
+pub async fn dump_frames_to_image<P: AsRef<Path>>(
+    video_path: P, 
+    image_path: P,
+    cols: usize,
+    rows: usize,
+) -> Result<()> {
+    let nframes = rows * cols;
+    let dump = dump_frame(video_path, nframes).await?;
+    concat_frames(dump, image_path, cols, rows).await?;
+    Ok(())
+}
 
-    pub async fn dump_frame<P: AsRef<Path>>(video_path: P, nframes: usize) -> Result<VideoDump> {
+pub async fn dump_frame<P: AsRef<Path>>(video_path: P, nframes: usize) -> Result<VideoDump> {
+    let video_path = video_path.as_ref().to_owned();
+
+    tokio::task::spawn_blocking(move || {
         ffmpeg::init()?;
 
         let mut options = ffmpeg::Dictionary::new();
@@ -229,15 +233,19 @@ impl VideoService {
         video_dump.nframes = frame_index;
 
         Ok(video_dump)
-    }
+    }).await?
+}
 
-    fn concat_frames<P: AsRef<Path>>(
-        dump: VideoDump, 
-        image_path: P,
-        cols: usize, 
-        rows: usize,
-    ) -> Result<()> {
-        let frames = Self::frames_to_image(&dump)?;
+async fn concat_frames<P: AsRef<Path>>(
+    dump: VideoDump, 
+    image_path: P,
+    cols: usize, 
+    rows: usize,
+) -> Result<()> {
+    let image_path = image_path.as_ref().to_owned();
+
+    tokio::task::spawn_blocking(move || {
+        let frames = frames_to_image(&dump)?;
         let img_width_out: u32 = frames.iter().map(|img| img.width()).take(cols).sum();
         let img_height_out: u32 = frames.iter().map(|img| img.height()).take(rows).sum();
 
@@ -258,76 +266,76 @@ impl VideoService {
         }
 
         imgbuf.save(&image_path)
-            .context(format!("failed to save image {}", image_path.as_ref().display()))?;
+            .context(format!("failed to save image {}", image_path.display()))?;
 
         Ok(())
-    }
-
-    fn frames_to_image(dump: &VideoDump) -> Result<Vec<DynamicImage>> {
-        let width = dump.width;
-        let height = dump.height;
-        let mut frames = vec![];
-        frames.reserve(dump.nframes);
-
-        // font settings
-        let (font, font_scale, font_x, font_y) = {
-            let font = Fonts::get("DejaVuSans.ttf").unwrap();
-            let font = font.data.to_vec();
-            // let font = Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8]);
-            let font = rusttype::Font::try_from_vec(font).unwrap();
-            let font_height = if height > width { 
-                (24.0 * width as f32) / 360 as f32
-            } else {
-                (14.0 * width as f32) / 360 as f32
-            };
-            let font_scale = rusttype::Scale {
-                x: font_height * 2.0,
-                y: font_height,
-            };
-            let font_size = text_size(font_scale, &font, "77:77:77.777");
-            let font_x = width as i32 - (font_size.0 + 10);
-            let font_y = height as i32 - (font_size.1 + 10);
-
-            (font, font_scale, font_x, font_y)
-        };
-
-        for i in 0..dump.nframes {
-            if let Some(frame) = dump.frames.get(&i) {
-                let img_buf =
-                    ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
-                        width, 
-                        height, 
-                        frame.data.to_owned(),
-                    ).unwrap();
-                let mut img = DynamicImage::ImageRgba8(img_buf);
-                
-                let timestamp = frame.timestamp;
-                let seconds = timestamp % 60.0;
-                let minutes = ((timestamp / 60.0) % 60.0) as u32;
-                let hours = ((timestamp / 60.0) / 60.0) as u32; 
-
-                // put timestamp on image
-                let text = format!("{:0>2}:{:0>2}:{:0>6.3}", hours, minutes, seconds);
-                draw_text_mut(
-                    &mut img, 
-                    image::Rgba([255u8, 111u8, 0u8, 255u8]), 
-                    font_x, font_y, font_scale, &font, text.as_str(),
-                );
-                // ----------------------------
-
-                let img = img.resize(
-                    FRAME_DIMENSION, 
-                    FRAME_DIMENSION, 
-                    imageops::FilterType::Lanczos3,
-                );
-                frames.push(img);
-            }
-        }
-
-        Ok(frames)
-    }
-    
+    }).await?
 }
+
+fn frames_to_image(dump: &VideoDump) -> Result<Vec<DynamicImage>> {
+    let width = dump.width;
+    let height = dump.height;
+    let mut frames = vec![];
+    frames.reserve(dump.nframes);
+
+    // font settings
+    let (font, font_scale, font_x, font_y) = {
+        let font = Fonts::get("DejaVuSans.ttf").unwrap();
+        let font = font.data.to_vec();
+        // let font = Vec::from(include_bytes!("DejaVuSans.ttf") as &[u8]);
+        let font = rusttype::Font::try_from_vec(font).unwrap();
+        let font_height = if height > width { 
+            (24.0 * width as f32) / 360 as f32
+        } else {
+            (14.0 * width as f32) / 360 as f32
+        };
+        let font_scale = rusttype::Scale {
+            x: font_height * 2.0,
+            y: font_height,
+        };
+        let font_size = text_size(font_scale, &font, "77:77:77.777");
+        let font_x = width as i32 - (font_size.0 + 10);
+        let font_y = height as i32 - (font_size.1 + 10);
+
+        (font, font_scale, font_x, font_y)
+    };
+
+    for i in 0..dump.nframes {
+        if let Some(frame) = dump.frames.get(&i) {
+            let img_buf =
+                ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
+                    width, 
+                    height, 
+                    frame.data.to_owned(),
+                ).unwrap();
+            let mut img = DynamicImage::ImageRgba8(img_buf);
+            
+            let timestamp = frame.timestamp;
+            let seconds = timestamp % 60.0;
+            let minutes = ((timestamp / 60.0) % 60.0) as u32;
+            let hours = ((timestamp / 60.0) / 60.0) as u32; 
+
+            // put timestamp on image
+            let text = format!("{:0>2}:{:0>2}:{:0>6.3}", hours, minutes, seconds);
+            draw_text_mut(
+                &mut img, 
+                image::Rgba([255u8, 111u8, 0u8, 255u8]), 
+                font_x, font_y, font_scale, &font, text.as_str(),
+            );
+            // ----------------------------
+
+            let img = img.resize(
+                FRAME_DIMENSION, 
+                FRAME_DIMENSION, 
+                imageops::FilterType::Lanczos3,
+            );
+            frames.push(img);
+        }
+    }
+
+    Ok(frames)
+}
+    
 
 #[cfg(test)]
 mod tests {
@@ -337,7 +345,7 @@ mod tests {
     #[tokio::test]
     async fn test_video_thumbnail() {
         let filename = "D:\\video\\vid00.mp4";
-        match VideoService::thumbnail(filename).await {
+        match thumbnail(filename).await {
             Ok(thumb) => {
                 save_file_thumb(&thumb)
                     .expect("error saving file thumb");
@@ -354,7 +362,7 @@ mod tests {
         let cols = 6;
         let rows: usize = 6;
 
-        match VideoService::dump_frames_to_image(video_path, image_path, cols, rows).await {
+        match dump_frames_to_image(video_path, image_path, cols, rows).await {
             Err(err) => assert!(false, "{err}"),
             _ => assert!(true),
         }
@@ -363,7 +371,7 @@ mod tests {
     #[tokio::test]
     async fn test_video_dump_frame() {
         let filename = "D:\\video\\vid00.mp4";
-        match VideoService::dump_frame(filename, 36).await {
+        match dump_frame(filename, 36).await {
             Ok(dump) => {
                 println!("Frames: {}", dump.nframes);
                 save_file_dump_frame(&dump)
@@ -377,7 +385,7 @@ mod tests {
     #[tokio::test]
     async fn test_video_dump_frame_error() {
         let filename = "D:\\video\\vid00.mp4";
-        match VideoService::dump_frame(filename, 376).await {
+        match dump_frame(filename, 376).await {
             Ok(_) => assert!(true),
             Err(err) => {
                 eprintln!("{err}");
@@ -394,8 +402,8 @@ mod tests {
         let rows: usize = 6;
         let nframes = cols * rows;
 
-        if let Ok(dump) = VideoService::dump_frame(filename, nframes).await {
-            match VideoService::concat_frames(dump, dst_path, cols, rows) {
+        if let Ok(dump) = dump_frame(filename, nframes).await {
+            match concat_frames(dump, dst_path, cols, rows).await {
                 Err(err) => assert!(false, "{err}"),
                 _ => (),
             }

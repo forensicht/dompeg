@@ -1,17 +1,15 @@
 use std::path::{PathBuf, Path};
 use anyhow::Result;
 
-use crate::{
-    app::{
-        models,
-        factories::image::{
-            ImageModel,
-            ImageInput,
-        },
-    },
-    core::service,
-};
 use crate::fl;
+use crate::app::{
+    models,
+    factories::image::{
+        ImageModel,
+        ImageInput,
+    },
+};
+use core_dompeg as core;
 
 use relm4::{
     prelude::*,
@@ -268,7 +266,12 @@ impl ImageListModel {
                 let thumbnail_size = self.thumbnail_size;
 
                 sender.oneshot_command(async move {
-                    match service::video::dump_frame(video_path, image_path.clone(), cols, rows).await {
+                    match core::video::dump_frames_to_image(
+                        video_path, 
+                        image_path.clone(), 
+                        cols, 
+                        rows,
+                    ).await {
                         Ok(_) => {
                             let filename = if let Some(filename) = Path::new(&image_path).file_name() {
                                 filename.to_str().unwrap().to_string()

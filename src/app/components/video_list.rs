@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 
 use crate::fl;
-use core_dompeg::services::video::VideoService;
+use core_dompeg as core;
 use crate::app::{
     models,
     factories::video::{
@@ -22,7 +22,6 @@ use super::toolbar::{
 };
 
 use relm4::{
-    tokio,
     prelude::*,
     gtk::prelude::*,
     factory::AsyncFactoryVecDeque,
@@ -351,24 +350,18 @@ impl VideoListModel {
         path: PathBuf,
         sender: &AsyncComponentSender<VideoListModel>,
     ) {
-        // sender.oneshot_command(async move {
-        //     tokio::task::spawn_blocking(move || {
-                
-        //     }).await;
-        // });
-
-        // sender.oneshot_command(async move {
-        //     match service::video::search_videos(path).await {
-        //         Ok(videos) => {
-        //             let videos = videos
-        //                 .iter()
-        //                 .map(|video| models::Video::from(video))
-        //                 .collect();
-        //             VideoListCommandOutput::SearchCompleted(Ok(videos))
-        //         }
-        //         Err(err) => VideoListCommandOutput::SearchCompleted(Err(err))
-        //     }
-        // });
+        sender.oneshot_command(async move {
+            match core::video::search_videos(path).await {
+                Ok(videos) => {
+                    let videos = videos
+                        .iter()
+                        .map(|video| models::Video::from(video))
+                        .collect();
+                    VideoListCommandOutput::SearchCompleted(Ok(videos))
+                }
+                Err(err) => VideoListCommandOutput::SearchCompleted(Err(err))
+            }
+        });
     }
 
     async fn on_play_video(
